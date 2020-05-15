@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: 'AWS::Serverless-2016-10-31'
+Description: Transit Gateway Attachment Custom Resource - Support enabling IPv6
+Resources:
+  LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/lambda/cfn-transit-gateway-attachment
+      RetentionInDays: 14
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Lambda function to create TransitGatewayAttachment with enabled IPv6
+      CodeUri: src/.target/
+      FunctionName: cfn-transit-gateway-attachment
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Timeout: 360
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.7
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'lambda-cfn-transit-gateway-attachment-${AWS::Region}'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyName: CreateTransitGatewayAttachment
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - iam:ListRoles
+                  - iam:CreateServiceLinkedRole                    
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:CreateTransitGatewayVpcAttachment
+                  - ec2:DeleteTransitGatewayVpcAttachment
+                  - ec2:DescribeTransitGatewayVpcAttachments
+                  - ec2:ModifyTransitGatewayVpcAttachment
+                  - ec2:CreateTags
+                Resource: '*'
