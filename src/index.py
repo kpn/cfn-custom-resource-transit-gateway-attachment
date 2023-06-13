@@ -19,13 +19,11 @@ default_options = {
 def get_options(properties):
     """Retrieve Options from the custom resources. Returns default values if they are not set."""
     try:
-        options = properties['Options']
-        if 'Ipv6Support' not in options:
-            options['Ipv6Support'] = default_options['Ipv6Support']
-        if 'DnsSupport' not in options:
-            options['DnsSupport'] = default_options['DnsSupport']
+        options = properties.get('Options', {})
+        options.setdefault('Ipv6Support', default_options['Ipv6Support'])
+        options.setdefault('DnsSupport', default_options['DnsSupport'])
     except KeyError:
-        print('No options found, use default settings')
+        logger.info('No options found, using default settings')
         options = default_options
 
     return options
@@ -38,39 +36,41 @@ def retry_if_result_true(result):
 
 @retry(stop_max_attempt_number=60, wait_fixed=5000, retry_on_result=retry_if_result_true)
 def wait_attachment_state(ec2_client, attachment_id, desired_state):
-    logger.debug('Waiting state  of attachment {} to be {}'.format(attachment_id, desired_state))
+    logger.debug('Waiting for attachment {} to reach desired state: {}'.format(attachment_id, desired_state))
 
     try:
         resp = ec2_client.describe_transit_gateway_vpc_attachments(TransitGatewayAttachmentIds=[attachment_id])
     except ClientError as e:
-        logger.debug('Failed to wait:{}'.format(e))
+        logger.debug('Failed to wait: {}'.format(e))
         return True
+
     attachments = resp['TransitGatewayVpcAttachments']
     if len(attachments) != 1:
-        # Attachment_id not found, wont retry
+        # Attachment_id not found, won't retry
         return False
 
     current_state = attachments[0]['State']
-    logger.debug('Current state of attachment id={id}: {state}'.format(id=attachment_id, state=current_state))
+    logger.debug('Current state of attachment id={}: {}'.format(attachment_id, current_state))
     return current_state != desired_state
+
 
 def create_if_not_exist_service_linked_role():
     iam_client = boto3.client('iam')
     resp = iam_client.list_roles()
     for role in resp['Roles']:
         if role['RoleName'] == 'AWSServiceRoleForVPCTransitGateway':
-            # service-linked role existed, exit
+            # service-linked role exists, exit
             break
     else:
         # create service-linked role if not found
         iam_client.create_service_linked_role(AWSServiceName='transitgateway.amazonaws.com')
 
+
 @helper.create
 def create_resource(event, _):
     """Create new TransitGatewayVpcAttachment object"""
-
     logger.info('Creating')
-    logger.debug('Event: {0}'.format(json.dumps(event)))
+    logger.debug('Event: {}'.format(json.dumps(event)))
 
     properties_ = event['ResourceProperties']
     options = get_options(properties_)
@@ -78,7 +78,7 @@ def create_resource(event, _):
         transit_gateway_id = properties_['TransitGatewayId']
         vpc_id = properties_['VpcId']
         subnet_ids = properties_['SubnetIds']
-        tags = properties_['Tags'] if 'Tags' in properties_ else []
+        tags = properties_.get('Tags', [])
     except KeyError as e:
         raise ValueError('Error - setting not found: {}'.format(e))
 
@@ -111,7 +111,7 @@ def create_resource(event, _):
 @helper.delete
 def delete_resource(event, _):
     logger.info('Deleting')
-    logger.debug('Event: {0}'.format(json.dumps(event)))
+    logger.debug('Event: {}'.format(json.dumps(event)))
     try:
         ec2_client = boto3.client('ec2')
     except ClientError as e:
@@ -138,8 +138,8 @@ def delete_resource(event, _):
 
 @helper.update
 def update_resource(event, _):
-    logger.debug('Event: {0}'.format(json.dumps(event)))
-    logger.info('Not yet implement')
+    logger.debug('Event: {}'.format(json.dumps(event)))
+    logger.info('Not yet implemented')
 
 
 def lambda_handler(event, context):
