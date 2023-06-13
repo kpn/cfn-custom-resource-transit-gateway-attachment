@@ -11,7 +11,7 @@ Resources:
       Tags:
         - Key: Name
           Value: example-vpc
-  
+
   # Enable IPv6 in VPC
   VpcCidrIPv6:
     Type: AWS::EC2::VPCCidrBlock
@@ -28,7 +28,7 @@ Resources:
       CidrBlock: '10.1.1.0/24'
       Ipv6CidrBlock: !Select [0, !Cidr [ !Select [ 0, !GetAtt Vpc.Ipv6CidrBlocks ], 4, 64 ]]
       MapPublicIpOnLaunch: False
-      AvailabilityZone: !Select [0, !GetAZs '']    
+      AvailabilityZone: !Select [0, !GetAZs '']
       Tags:
         - Key: Name
           Value: example-private-1
@@ -41,10 +41,11 @@ Resources:
       VpcId: !Ref Vpc
       CidrBlock: '10.1.2.0/24'
       Ipv6CidrBlock: !Select [1, !Cidr [ !Select [ 0, !GetAtt Vpc.Ipv6CidrBlocks ], 4, 64 ]]
-      AvailabilityZone: !Select [1, !GetAZs '']    
+      AvailabilityZone: !Select [1, !GetAZs '']
       Tags:
         - Key: Name
-          Value: example-private-2      
+          Value: example-private-2
+
   PrivateSubnet3:
     Type: AWS::EC2::Subnet
     DependsOn:
@@ -53,11 +54,11 @@ Resources:
       VpcId: !Ref Vpc
       CidrBlock: '10.1.3.0/24'
       Ipv6CidrBlock: !Select [2, !Cidr [ !Select [ 0, !GetAtt Vpc.Ipv6CidrBlocks ], 4, 64 ]]
-      AvailabilityZone: !Select [2, !GetAZs '']    
+      AvailabilityZone: !Select [2, !GetAZs '']
       Tags:
         - Key: Name
           Value: example-private-3
-  
+
   TransitGateway:
     Type: AWS::EC2::TransitGateway
     Properties:
@@ -69,7 +70,7 @@ Resources:
       Tags:
         - Key: Name
           Value: example-tgw
-  
+
   TransitGatewayAttachment:
     Type: Custom::TransitGatewayAttachment
     Properties:
